@@ -8,6 +8,8 @@ import { chatProxyHandler } from "./openai/chat/completions/ChatProxyHandler.ts"
 import { embeddingProxyHandler } from "./openai/embeddingProxyHandler.ts"
 import { modelDetail, models } from "./openai/models.ts"
 
+import chatMiddleware from "./middleware/chat.js"
+
 const { preflight, corsify } = cors({ allowHeaders: "*" })
 
 const app = Router<IRequest, Any[], Response>({
@@ -28,7 +30,7 @@ const app = Router<IRequest, Any[], Response>({
 })
 
 app.get("/", hello)
-app.post("/v1/chat/completions", chatProxyHandler)
+app.post("/v1/chat/completions", chatMiddleware, chatProxyHandler)
 app.post("/v1/embeddings", embeddingProxyHandler)
 app.get("/v1/models", () => Response.json(models()))
 app.get("/v1/models/:model", (c) => Response.json(modelDetail(c.params.model)))

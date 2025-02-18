@@ -9,6 +9,7 @@ export function streamingChatProxyHandler(
   req: OpenAI.Chat.ChatCompletionCreateParams,
   apiParam: ApiParam,
   log?: Logger,
+  rawReq?: any
 ): Response {
   const [model, geminiReq] = genModel(req)
   log?.debug("streamGenerateContent request", req)
@@ -31,7 +32,8 @@ export function streamingChatProxyHandler(
       yield "[DONE]"
       return undefined
     })(),
-  )
+    rawReq,
+  );
 }
 
 function genStreamResp({
@@ -76,14 +78,34 @@ function genStreamResp({
 
 const encoder = new TextEncoder()
 
-function sseResponse(dataStream: AsyncGenerator<string | OpenAI.Chat.ChatCompletionChunk, undefined>): Response {
+function sseResponse(
+  dataStream: AsyncGenerator<
+    string | OpenAI.Chat.ChatCompletionChunk,
+    undefined
+  >,
+  request?: any
+): Response {
+  let results = [];
+
   const s = new ReadableStream<Uint8Array>({
     async pull(controller) {
       const { value, done } = await dataStream.next()
       if (done) {
-        controller.close()
+        if (request) {
+          const value = {
+            // id: request?.dbData?.id,
+            result: results.join('\n'),
+            title: request?.content?.title,
+            updateTime: request?.content?.updateTime,
+            // lastUpdateTime: Date.now(),
+          }
+          await MY_KV.put(`${request?.content?.title}`, value)
+          // await MY_KV.put(`${request?.content?.title}-${request?.content?.updateTime}`, value)
+        }
+        controller.close();
       } else {
         const data = typeof value === "string" ? value : JSON.stringify(value)
+        results.push(data)
         controller.enqueue(encoder.encode(toSseMsg({ data })))
       }
     },

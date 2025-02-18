@@ -4,7 +4,8 @@ import { nonStreamingChatProxyHandler } from "./NonStreamingChatProxyHandler.ts"
 import { streamingChatProxyHandler } from "./StreamingChatProxyHandler.ts"
 
 export async function chatProxyHandler(rawReq: Request): Promise<Response> {
-  const req = (await rawReq.json()) as OpenAI.Chat.ChatCompletionCreateParams
+  // @ts-ignore
+  const req = rawReq.content || (await rawReq.json()) as OpenAI.Chat.ChatCompletionCreateParams
   const headers = rawReq.headers
   const apiParam = getToken(headers)
   if (apiParam == null) {
@@ -14,5 +15,5 @@ export async function chatProxyHandler(rawReq: Request): Promise<Response> {
   if (req.stream !== true) {
     return await nonStreamingChatProxyHandler(req, apiParam, rawReq.logger)
   }
-  return streamingChatProxyHandler(req, apiParam, rawReq.logger)
+  return streamingChatProxyHandler(req, apiParam, rawReq.logger, rawReq)
 }

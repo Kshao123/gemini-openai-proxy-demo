@@ -101,7 +101,7 @@ export class RequestUrl {
   }
 }
 
-const BASE_URL = "https://generativelanguage.googleapis.com"
+const BASE_URL = process.env.GEMINI_URL || "https://generativelanguage.googleapis.com"
 
 /**
  * Generates the request options to be passed to the fetch API.
